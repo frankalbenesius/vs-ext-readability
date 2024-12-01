@@ -43,6 +43,6 @@ todo:
 - add some kind of settings?
   - could make this a view action to go to settings, cog wheel icon
   - settings could maybe control which files types to make the extension/command available in, but maybe it's better just to trust the user to use it where they need it and not limit it
-
-i'm pretty sure i'm forgetting something but i think i'll be able to wrap these items up tomorrow
 - if the view can display "no scores" because of file type or some other reason, find a way to display that state more nicely 
+
+i'm pretty sure i'm forgetting something but i think i'll be able to wrap these items up tomorrow. i'm going to go do other stuff :)
