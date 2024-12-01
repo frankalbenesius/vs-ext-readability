@@ -71,15 +71,10 @@ function activate(context) {
     const provider = new ReadabilityViewProvider(context.extensionUri);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(ReadabilityViewProvider.viewType, provider));
     const commandId = "vs-ext-readability.showReadability";
-    const disposable = vscode.commands.registerTextEditorCommand(commandId, (textEditor) => {
+    const readabilityCommand = vscode.commands.registerTextEditorCommand(commandId, (textEditor) => {
         const scores = analyzeReadability(textEditor);
-        if (scores) {
-            console.log(scores);
-            // TODO: some view of the info
-            // TODO: display the range of what's being scored somehow
-        }
     });
-    context.subscriptions.push(disposable);
+    context.subscriptions.push(readabilityCommand);
     // create a new status bar item that we can now manage
     readabilityStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1000);
     readabilityStatusBarItem.command = commandId;
@@ -94,8 +89,9 @@ function updateStatusBarItem() {
         ["plaintext", "markdown"].includes(textEditor.document.languageId)) {
         const scores = analyzeReadability(textEditor);
         // TODO: status bar hover information?
-        readabilityStatusBarItem.text = `Grade Level: ~${scores.textStandard}`;
-        readabilityStatusBarItem.tooltip = "Click to see all scores.";
+        readabilityStatusBarItem.text = `Readability: ${scores.textStandard}`;
+        readabilityStatusBarItem.tooltip =
+            "The value shown is the estimated school grade level required to understand the text. Click to open the Readability view for more information.";
         // TODO: maybe put warning status color if low readability?
         // readabilityStatusBarItem.backgroundColor = new vscode.ThemeColor(
         //   "statusBarItem.warningBackground"
@@ -130,7 +126,14 @@ class ReadabilityViewProvider {
         //   }
         // });
     }
+    // TODO: message passing to populate webview state on text update
     _getHtmlForWebview(webview) {
+        const textEditor = vscode.window.activeTextEditor;
+        let scores = null;
+        if (textEditor &&
+            ["plaintext", "markdown"].includes(textEditor.document.languageId)) {
+            scores = analyzeReadability(textEditor);
+        }
         // // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
         // const scriptUri = webview.asWebviewUri(
         //   vscode.Uri.joinPath(this._extensionUri, "media", "main.js")
@@ -147,15 +150,47 @@ class ReadabilityViewProvider {
         // );
         // Use a nonce to only allow a specific script to be run.
         // const nonce = getNonce();
+        const scoreObjs = [
+            {
+                name: "Flesch Reading Ease",
+                url: "https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests#Flesch_reading_ease",
+                score: scores?.fleschReadingEase,
+            },
+        ];
         return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<title>readability title?</title>
+        <style>
+        .scores {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .score {
+          padding: 0.5rem;
+          background: rgba(255,255,255,0.1);
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+        </style>
 			</head>
+
 			<body>
-        <div> readabbbility</div>
+        <div class="scores">
+        ${scoreObjs.map((scoreObj) => {
+            return `
+          <div class="score">
+            <a class="score_name" href="${scoreObj.url}">${scoreObj.name}</a>
+            <div class="score_value">${scoreObj.score}</div>
+          </div>
+          `;
+        })}
+        </div>
+        
 			</body>
 			</html>`;
     }
