@@ -1,54 +1,80 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode";
-
 import rs from "text-readability-ts";
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+let readabilityStatusBarItem: vscode.StatusBarItem;
+
+function analyzeReadability(textEditor: vscode.TextEditor) {
+  const text = textEditor.selection.isEmpty
+    ? textEditor.document.getText()
+    : textEditor.document.getText(textEditor.selection);
+  const scores = {
+    fleschReadingEase: rs.fleschReadingEase(text),
+    fleschKincaidGrade: rs.fleschKincaidGrade(text),
+    colemanLiauIndex: rs.colemanLiauIndex(text),
+    automatedReadabilityIndex: rs.automatedReadabilityIndex(text),
+    daleChallReadabilityScore: rs.daleChallReadabilityScore(text),
+    difficultWords: rs.difficultWords(text),
+    linsearWriteFormula: rs.linsearWriteFormula(text),
+    gunningFog: rs.gunningFog(text),
+    textStandard: rs.textStandard(text),
+  };
+  return scores;
+}
+
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log(
-    'Congratulations, your extension "vs-ext-readability" is now active!'
-  );
-
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-
+  const commandId = "vs-ext-readability.helloWorld";
   const disposable = vscode.commands.registerTextEditorCommand(
-    "vs-ext-readability.helloWorld",
+    commandId,
     (textEditor) => {
-      // TODO: display the range of what's being scored somehow
-      const text = textEditor.selection.isEmpty
-        ? textEditor.document.getText()
-        : textEditor.document.getText(
-            new vscode.Range(
-              textEditor.selection.start,
-              textEditor.selection.end
-            )
-          );
-
-      // vscode.workspace.openTextDocument(uri).then((document) => {
-      //   let text = document.getText();
-      // });
-
-      console.log(
-        rs.fleschReadingEase(text),
-        rs.fleschKincaidGrade(text),
-        rs.colemanLiauIndex(text),
-        rs.automatedReadabilityIndex(text),
-        rs.daleChallReadabilityScore(text),
-        rs.difficultWords(text),
-        rs.linsearWriteFormula(text),
-        rs.gunningFog(text),
-        rs.textStandard(text)
-      );
+      const scores = analyzeReadability(textEditor);
+      if (scores) {
+        console.log(scores);
+        // TODO: some view of the info
+        // TODO: display the range of what's being scored somehow
+      }
     }
   );
 
+  // create a new status bar item that we can now manage
+  readabilityStatusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    1000
+  );
+  readabilityStatusBarItem.command = commandId;
+  context.subscriptions.push(readabilityStatusBarItem);
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(updateStatusBarItem)
+  );
+  context.subscriptions.push(
+    vscode.window.onDidChangeTextEditorSelection(updateStatusBarItem)
+  );
+  updateStatusBarItem();
+
   context.subscriptions.push(disposable);
+}
+
+function updateStatusBarItem(): void {
+  const textEditor = vscode.window.activeTextEditor;
+  if (
+    textEditor &&
+    ["plaintext", "markdown"].includes(textEditor.document.languageId)
+  ) {
+    const scores = analyzeReadability(textEditor);
+    // TODO: status bar hover information?
+    readabilityStatusBarItem.text = `Readability: ${scores.fleschReadingEase}`;
+    readabilityStatusBarItem.tooltip = new vscode.MarkdownString(
+      "[google](https://www.google.com)"
+    );
+
+    // TODO: maybe put warning status color if low readability?
+    // readabilityStatusBarItem.backgroundColor = new vscode.ThemeColor(
+    //   "statusBarItem.warningBackground"
+    // );
+    readabilityStatusBarItem.show();
+  } else {
+    readabilityStatusBarItem.hide();
+  }
 }
 
 // This method is called when your extension is deactivated

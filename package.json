@@ -9,8 +9,11 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
   "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown",
+    "onLanguage:plaintext"
+  ],
   "contributes": {
     "commands": {
       "command": "vs-ext-readability.helloWorld",
