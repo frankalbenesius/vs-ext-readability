@@ -10,19 +10,25 @@
     "Other"
   ],
   "main": "./out/extension.js",
-  "activationEvents": [
-    "onLanguage:markdown",
-    "onLanguage:plaintext"
-  ],
+  "activationEvents": [],
   "contributes": {
     "commands": {
-      "command": "vs-ext-readability.helloWorld",
-      "title": "Hello World"
+      "command": "vs-ext-readability.showReadability",
+      "title": "Score Readability"
+    },
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "vs-ext-readability.readabilityView",
+          "name": "Readability"
+        }
+      ]
     },
     "menus": {
       "commandPalette": [
         {
-          "command": "vs-ext-readability.helloWorld",
+          "command": "vs-ext-readability.showReadability",
           "when": "editorHasSelection || editorLangId == markdown || editorLangId == plaintext"
         }
       ]

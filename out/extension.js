@@ -37,7 +37,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
-exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const text_readability_ts_1 = __importDefault(require("text-readability-ts"));
 let readabilityStatusBarItem;
@@ -46,20 +45,32 @@ function analyzeReadability(textEditor) {
         ? textEditor.document.getText()
         : textEditor.document.getText(textEditor.selection);
     const scores = {
+        // grade level tests:
         fleschReadingEase: text_readability_ts_1.default.fleschReadingEase(text),
         fleschKincaidGrade: text_readability_ts_1.default.fleschKincaidGrade(text),
-        colemanLiauIndex: text_readability_ts_1.default.colemanLiauIndex(text),
-        automatedReadabilityIndex: text_readability_ts_1.default.automatedReadabilityIndex(text),
-        daleChallReadabilityScore: text_readability_ts_1.default.daleChallReadabilityScore(text),
-        difficultWords: text_readability_ts_1.default.difficultWords(text),
-        linsearWriteFormula: text_readability_ts_1.default.linsearWriteFormula(text),
         gunningFog: text_readability_ts_1.default.gunningFog(text),
-        textStandard: text_readability_ts_1.default.textStandard(text),
+        smogIndex: text_readability_ts_1.default.smogIndex(text),
+        automatedReadabilityIndex: text_readability_ts_1.default.automatedReadabilityIndex(text),
+        colemanLiauIndex: text_readability_ts_1.default.colemanLiauIndex(text),
+        linsearWriteFormula: text_readability_ts_1.default.linsearWriteFormula(text),
+        daleChallReadabilityScore: text_readability_ts_1.default.daleChallReadabilityScore(text),
+        // estimated aggregate of the above scores:
+        textStandard: text_readability_ts_1.default.textStandard(text, true),
+        // other stuff we could use:
+        // syllableCount: rs.syllableCount(text),
+        // lexiconCount: rs.lexiconCount(text),
+        // sentenceCount: rs.sentenceCount(text),
+        // characterCount: rs.charCount(text),
+        // letterCount: rs.letterCount(text),
+        // polysyllableCount: rs.polySyllableCount(text),
+        // difficultWordCount: rs.difficultWords(text),
     };
     return scores;
 }
 function activate(context) {
-    const commandId = "vs-ext-readability.helloWorld";
+    const provider = new ReadabilityViewProvider(context.extensionUri);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(ReadabilityViewProvider.viewType, provider));
+    const commandId = "vs-ext-readability.showReadability";
     const disposable = vscode.commands.registerTextEditorCommand(commandId, (textEditor) => {
         const scores = analyzeReadability(textEditor);
         if (scores) {
@@ -68,6 +79,7 @@ function activate(context) {
             // TODO: display the range of what's being scored somehow
         }
     });
+    context.subscriptions.push(disposable);
     // create a new status bar item that we can now manage
     readabilityStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 1000);
     readabilityStatusBarItem.command = commandId;
@@ -75,7 +87,6 @@ function activate(context) {
     context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateStatusBarItem));
     context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(updateStatusBarItem));
     updateStatusBarItem();
-    context.subscriptions.push(disposable);
 }
 function updateStatusBarItem() {
     const textEditor = vscode.window.activeTextEditor;
@@ -83,8 +94,8 @@ function updateStatusBarItem() {
         ["plaintext", "markdown"].includes(textEditor.document.languageId)) {
         const scores = analyzeReadability(textEditor);
         // TODO: status bar hover information?
-        readabilityStatusBarItem.text = `Readability: ${scores.fleschReadingEase}`;
-        readabilityStatusBarItem.tooltip = new vscode.MarkdownString("[google](https://www.google.com)");
+        readabilityStatusBarItem.text = `Grade Level: ~${scores.textStandard}`;
+        readabilityStatusBarItem.tooltip = "Click to see all scores.";
         // TODO: maybe put warning status color if low readability?
         // readabilityStatusBarItem.backgroundColor = new vscode.ThemeColor(
         //   "statusBarItem.warningBackground"
@@ -95,6 +106,66 @@ function updateStatusBarItem() {
         readabilityStatusBarItem.hide();
     }
 }
-// This method is called when your extension is deactivated
-function deactivate() { }
+class ReadabilityViewProvider {
+    _extensionUri;
+    static viewType = "vs-ext-readability.readabilityView";
+    constructor(_extensionUri) {
+        this._extensionUri = _extensionUri;
+    }
+    resolveWebviewView(webviewView, context, token) {
+        webviewView.webview.options = {
+            // Allow scripts in the webview
+            // enableScripts: true,
+            localResourceRoots: [this._extensionUri],
+        };
+        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        // webviewView.webview.onDidReceiveMessage((data) => {
+        //   switch (data.type) {
+        //     case "colorSelected": {
+        //       vscode.window.activeTextEditor?.insertSnippet(
+        //         new vscode.SnippetString(`#${data.value}`)
+        //       );
+        //       break;
+        //     }
+        //   }
+        // });
+    }
+    _getHtmlForWebview(webview) {
+        // // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
+        // const scriptUri = webview.asWebviewUri(
+        //   vscode.Uri.joinPath(this._extensionUri, "media", "main.js")
+        // );
+        // Do the same for the stylesheet.
+        // const styleResetUri = webview.asWebviewUri(
+        //   vscode.Uri.joinPath(this._extensionUri, "media", "reset.css")
+        // );
+        // const styleVSCodeUri = webview.asWebviewUri(
+        //   vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css")
+        // );
+        // const styleMainUri = webview.asWebviewUri(
+        //   vscode.Uri.joinPath(this._extensionUri, "media", "main.css")
+        // );
+        // Use a nonce to only allow a specific script to be run.
+        // const nonce = getNonce();
+        return `<!DOCTYPE html>
+			<html lang="en">
+			<head>
+				<meta charset="UTF-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<title>readability title?</title>
+			</head>
+			<body>
+        <div> readabbbility</div>
+			</body>
+			</html>`;
+    }
+}
+// function getNonce() {
+// 	let text = '';
+// 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+// 	for (let i = 0; i < 32; i++) {
+// 		text += possible.charAt(Math.floor(Math.random() * possible.length));
+// 	}
+// 	return text;
+// }
 //# sourceMappingURL=extension.js.map
