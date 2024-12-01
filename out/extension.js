@@ -32,12 +32,16 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __importStar(require("vscode"));
+const text_readability_ts_1 = __importDefault(require("text-readability-ts"));
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 function activate(context) {
@@ -47,10 +51,15 @@ function activate(context) {
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand
     // The commandId parameter must match the command field in package.json
-    const disposable = vscode.commands.registerCommand("vs-ext-readability.helloWorld", () => {
-        // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
-        vscode.window.showInformationMessage("Hello World from FrANK!");
+    const disposable = vscode.commands.registerTextEditorCommand("vs-ext-readability.helloWorld", (textEditor) => {
+        // TODO: display the range of what's being scored somehow
+        const text = textEditor.selection.isEmpty
+            ? textEditor.document.getText()
+            : textEditor.document.getText(new vscode.Range(textEditor.selection.start, textEditor.selection.end));
+        // vscode.workspace.openTextDocument(uri).then((document) => {
+        //   let text = document.getText();
+        // });
+        console.log(text_readability_ts_1.default.fleschReadingEase(text), text_readability_ts_1.default.fleschKincaidGrade(text), text_readability_ts_1.default.colemanLiauIndex(text), text_readability_ts_1.default.automatedReadabilityIndex(text), text_readability_ts_1.default.daleChallReadabilityScore(text), text_readability_ts_1.default.difficultWords(text), text_readability_ts_1.default.linsearWriteFormula(text), text_readability_ts_1.default.gunningFog(text), text_readability_ts_1.default.textStandard(text));
     });
     context.subscriptions.push(disposable);
 }
