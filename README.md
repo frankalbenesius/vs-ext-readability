@@ -70,6 +70,7 @@ Future considerations:
 
 - what should activate the extension? is file type too narrow of an activation?
 - what metrics are most useful to which users? should more or less be available?
+- should context about each metric's description and range of values be more present in the UX?
 - if we were to use a webview instead of a tree view, what other information could we display and would that improve the UX?
 - more nuanced metrics about _which_ words or sentences were most complex might be more useful (though the currently used readability library does not offer that functionality directly)
 - more nuanced selection may be helpful, like making sure the selection only includes full sentences or words
