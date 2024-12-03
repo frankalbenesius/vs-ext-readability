@@ -62,7 +62,10 @@ function updateStatusBarItem() {
     if (textEditor &&
         ["plaintext", "markdown"].includes(textEditor.document.languageId)) {
         const scores = (0, readability_1.getReadabilityScores)(textEditor);
-        readabilityStatusBarItem.text = `Readability: ${scores.readabilityConsensus}`;
+        const property = vscode.workspace
+            .getConfiguration("readability")
+            .get("statusBarMetric", "readabilityConsensus");
+        readabilityStatusBarItem.text = `Readability: ${scores[property]}`;
         readabilityStatusBarItem.tooltip =
             'The "Readability Consensus" is the estimated school grade level required to understand the text. Click to open the Readability view for more information.';
         readabilityStatusBarItem.show();

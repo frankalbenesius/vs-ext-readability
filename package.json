@@ -41,10 +41,33 @@
       {
         "title": "Readability",
         "properties": {
-          "readability.autorefresh": {
-            "type": "array",
-            "description": "Auto refresh the JSON outline opeview when the contents of the json file change.",
-            "default": false
+          "readability.statusBarMetric": {
+            "type": "string",
+            "enum": [
+              "fleschReadingEase",
+              "fleschKincaidGrade",
+              "gunningFog",
+              "smogIndex",
+              "automatedReadabilityIndex",
+              "colemanLiauIndex",
+              "linsearWriteFormula",
+              "daleChallReadabilityScore",
+              "readabilityConsensus"
+            ],
+            "enumItemLabels": [
+              "Flesch Reading Ease Formula",
+              "Flesch-Kincaid Grade Level",
+              "Fog Scale",
+              "SMOG Index",
+              "Automated Readability Index",
+              "Coleman-Liau Index",
+              "Linsear Write Formula",
+              "Dale-Chall Readability",
+              "Readability Consensus"
+            ],
+            "enumDescriptions": [],
+            "default": "readabilityConsensus",
+            "description": "Select the readability metric to display in the status bar."
           }
         }
       }
