@@ -1,4 +1,12 @@
-**notes**
+**To Run**
+
+- pull repository, install dependencies, and open in vs code
+- run the `Debug: Start Debugging` command to open the Extension Development Host
+- to see code changes, run the `Developer: Reload Window` command in the Host window
+
+---
+
+**Development Notes**
 
 _11/28/24_
 
@@ -46,3 +54,28 @@ todo:
 - if the view can display "no scores" because of file type or some other reason, find a way to display that state more nicely 
 
 i'm pretty sure i'm forgetting something but i think i'll be able to wrap these items up tomorrow. i'm going to go do other stuff :)
+
+_12/2/24_
+
+The extension's cabilities are now:
+
+- activated by plaintext and markdown files in the editor
+- a status bar item displays the current readability metric of the file (or selection)
+- an Explorer Readability view displays a simple tree of text selection information and all current metrics for that text
+- you can configure which metric is displayed in the status bar
+- clicking on the status bar item focuses the view
+- clicking on metrics opens the wikipedia entry for that metric
+
+Future considerations:
+
+- what should activate the extension? is file type too narrow of an activation?
+- what metrics are most useful to which users? should more or less be available?
+- if we were to use a webview instead of a tree view, what other information could we display and would that improve the UX?
+- more nuanced metrics about _which_ words or sentences were most complex might be more useful (though the currently used readability library does not offer that functionality directly)
+- more nuanced selection may be helpful, like making sure the selection only includes full sentences or words
+- possible configurations include: which metrics to display in the view, how often to update metrics, which files  types activate the extension
+
+
+<img width="976" alt="Screenshot 2024-12-02 at 8 37 07 PM" src="https://github.com/user-attachments/assets/bb547487-4e0a-4a40-ada5-1c4b6ec8724d">
+
+
