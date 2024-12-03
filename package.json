@@ -10,16 +10,23 @@
     "Other"
   ],
   "main": "./out/extension.js",
-  "activationEvents": [],
+  "activationEvents": [
+    "*"
+  ],
   "contributes": {
-    "commands": {
-      "command": "vs-ext-readability.showReadability",
-      "title": "Score Readability"
-    },
+    "commands": [
+      {
+        "command": "vs-ext-readability.showReadability",
+        "title": "Score Readability"
+      },
+      {
+        "command": "vs-ext-readability.refresh",
+        "title": "Refresh Readability"
+      }
+    ],
     "views": {
       "explorer": [
         {
-          "type": "webview",
           "id": "vs-ext-readability.readabilityView",
           "name": "Readability"
         }
@@ -32,7 +39,19 @@
           "when": "editorHasSelection || editorLangId == markdown || editorLangId == plaintext"
         }
       ]
-    }
+    },
+    "configuration": [
+      {
+        "title": "JSON Outline",
+        "properties": {
+          "vs-code-readability.autorefresh": {
+            "type": "boolean",
+            "description": "Auto refresh the JSON outline view when the contents of the json file change.",
+            "default": false
+          }
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
@@ -55,6 +74,8 @@
   },
   "packageManager": "pnpm@9.14.2+sha512.6e2baf77d06b9362294152c851c4f278ede37ab1eba3a55fda317a4a17b209f4dbb973fb250a77abc463a341fcb1f17f17cfa24091c4eb319cda0d9b84278387",
   "dependencies": {
+    "@types/lodash": "^4.17.13",
+    "lodash": "^4.17.21",
     "text-readability-ts": "^1.0.11"
   }
 }

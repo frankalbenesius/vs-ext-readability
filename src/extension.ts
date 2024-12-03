@@ -1,6 +1,6 @@
-import { startCase } from "lodash";
 import * as vscode from "vscode";
 import rs from "text-readability-ts";
+import { debounce } from "lodash";
 
 let readabilityStatusBarItem: vscode.StatusBarItem;
 
@@ -20,7 +20,7 @@ function analyzeReadability(textEditor: vscode.TextEditor) {
     daleChallReadabilityScore: rs.daleChallReadabilityScore(text),
 
     // estimated aggregate of the above scores:
-    textStandard: rs.textStandard(text, true),
+    readabilityConsensus: rs.textStandard(text, true),
 
     // other stuff we could use:
     // syllableCount: rs.syllableCount(text),
@@ -35,19 +35,29 @@ function analyzeReadability(textEditor: vscode.TextEditor) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new ReadabilityViewProvider(context.extensionUri);
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      ReadabilityViewProvider.viewType,
-      provider
-    )
+  const treeProvider = new ReadabilityTreeProvider();
+  vscode.window.registerTreeDataProvider(
+    "vs-ext-readability.readabilityView",
+    treeProvider
   );
+  // vscode.commands.registerCommand("vs-ext-readability.refresh", () =>
+  //   treeProvider.refresh()
+  // );
+  // vscode.commands.registerCommand('extension.openPackageOnNpm', moduleName => vscode.commands.executeCommand('vscode.open', vscode.Uri.parse(`https://www.npmjs.com/package/${moduleName}`)));
+
+  // context.subscriptions.push(
+  //   vscode.window.registerWebviewViewProvider(
+  //     ReadabilityViewProvider.viewType,
+  //     provider
+  //   )
+  // );
 
   const commandId = "vs-ext-readability.showReadability";
   const readabilityCommand = vscode.commands.registerTextEditorCommand(
     commandId,
     (textEditor) => {
       const scores = analyzeReadability(textEditor);
+      console.log(scores);
     }
   );
   context.subscriptions.push(readabilityCommand);
@@ -60,6 +70,9 @@ export function activate(context: vscode.ExtensionContext) {
   readabilityStatusBarItem.command = commandId;
   context.subscriptions.push(readabilityStatusBarItem);
 
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor(updateStatusBarItem)
+  );
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor(updateStatusBarItem)
   );
@@ -77,131 +90,190 @@ function updateStatusBarItem(): void {
     ["plaintext", "markdown"].includes(textEditor.document.languageId)
   ) {
     const scores = analyzeReadability(textEditor);
-    // TODO: status bar hover information?
-    readabilityStatusBarItem.text = `Readability: ${scores.textStandard}`;
+    readabilityStatusBarItem.text = `Readability: ${scores.readabilityConsensus}`;
     readabilityStatusBarItem.tooltip =
-      "The value shown is the estimated school grade level required to understand the text. Click to open the Readability view for more information.";
-
-    // TODO: maybe put warning status color if low readability?
-    // readabilityStatusBarItem.backgroundColor = new vscode.ThemeColor(
-    //   "statusBarItem.warningBackground"
-    // );
+      'The "Readability Consensus" is the estimated school grade level required to understand the text. Click to open the Readability view for more information.';
     readabilityStatusBarItem.show();
   } else {
     readabilityStatusBarItem.hide();
   }
 }
 
-class ReadabilityViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = "vs-ext-readability.readabilityView";
-  constructor(private readonly _extensionUri: vscode.Uri) {}
-  resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    token: vscode.CancellationToken
-  ): Thenable<void> | void {
-    webviewView.webview.options = {
-      // Allow scripts in the webview
-      // enableScripts: true,
-      localResourceRoots: [this._extensionUri],
-    };
-    webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+class ReadabilityTreeProvider
+  implements vscode.TreeDataProvider<ReadabilityTreeItem>
+{
+  private _onDidChangeTreeData: vscode.EventEmitter<
+    ReadabilityTreeItem | undefined | void
+  > = new vscode.EventEmitter<ReadabilityTreeItem | undefined | void>();
+  readonly onDidChangeTreeData: vscode.Event<
+    ReadabilityTreeItem | undefined | void
+  > = this._onDidChangeTreeData.event;
 
-    // webviewView.webview.onDidReceiveMessage((data) => {
-    //   switch (data.type) {
-    //     case "colorSelected": {
-    //       vscode.window.activeTextEditor?.insertSnippet(
-    //         new vscode.SnippetString(`#${data.value}`)
-    //       );
-    //       break;
-    //     }
-    //   }
-    // });
+  constructor() {
+    vscode.window.onDidChangeActiveTextEditor(() => this.refresh());
+    vscode.window.onDidChangeTextEditorSelection(() => this.refresh());
+    vscode.workspace.onDidChangeTextDocument(() => this.refresh());
+    this.updateScores();
   }
 
-  // TODO: message passing to populate webview state on text update
+  scores: ReturnType<typeof analyzeReadability> | null = null;
+  selection: vscode.Range | null = null;
 
-  private _getHtmlForWebview(webview: vscode.Webview) {
-    const textEditor = vscode.window.activeTextEditor;
-
-    let scores: ReturnType<typeof analyzeReadability> | null = null;
-    if (
-      textEditor &&
-      ["plaintext", "markdown"].includes(textEditor.document.languageId)
-    ) {
-      scores = analyzeReadability(textEditor);
+  updateScores(): void {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      this.selection = editor.selection;
+      this.scores = analyzeReadability(editor);
+    } else {
+      this.selection = null;
+      this.scores = null;
     }
+  }
 
-    // // Get the local path to main script run in the webview, then convert it to a uri we can use in the webview.
-    // const scriptUri = webview.asWebviewUri(
-    //   vscode.Uri.joinPath(this._extensionUri, "media", "main.js")
-    // );
+  refresh = debounce(() => {
+    this.updateScores();
+    this._onDidChangeTreeData.fire();
+  }, 500);
 
-    // Do the same for the stylesheet.
-    // const styleResetUri = webview.asWebviewUri(
-    //   vscode.Uri.joinPath(this._extensionUri, "media", "reset.css")
-    // );
-    // const styleVSCodeUri = webview.asWebviewUri(
-    //   vscode.Uri.joinPath(this._extensionUri, "media", "vscode.css")
-    // );
-    // const styleMainUri = webview.asWebviewUri(
-    //   vscode.Uri.joinPath(this._extensionUri, "media", "main.css")
-    // );
+  getTreeItem(element: ReadabilityTreeItem): vscode.TreeItem {
+    return element;
+  }
 
-    // Use a nonce to only allow a specific script to be run.
-    // const nonce = getNonce();
-    const scoreObjs = [
-      {
-        name: "Flesch Reading Ease",
-        url: "https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests#Flesch_reading_ease",
-        score: scores?.fleschReadingEase,
-      },
-    ];
-
-    return `<!DOCTYPE html>
-			<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<title>readability title?</title>
-        <style>
-        .scores {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .score {
-          padding: 0.5rem;
-          background: rgba(255,255,255,0.1);
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-        </style>
-			</head>
-
-			<body>
-        <div class="scores">
-        ${scoreObjs.map((scoreObj) => {
-          return `
-          <div class="score">
-            <a class="score_name" href="${scoreObj.url}">${scoreObj.name}</a>
-            <div class="score_value">${scoreObj.score}</div>
-          </div>
-          `;
-        })}
-        </div>
-        
-			</body>
-			</html>`;
+  getChildren(element?: ReadabilityTreeItem): Thenable<ReadabilityTreeItem[]> {
+    if (this.scores === null) {
+      return Promise.resolve([]);
+    }
+    if (element) {
+      return Promise.resolve([
+        new ReadabilityTreeItem(
+          element.details!.score.toString(),
+          vscode.TreeItemCollapsibleState.None
+        ),
+      ]);
+    } else {
+      const itemConfigs: {
+        label: string;
+        details: { score: string | number; url: string; description: "" };
+      }[] = [
+        {
+          label: "Flesch Reading Ease Formula",
+          details: {
+            score: this.scores.fleschReadingEase,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "Flesch-Kincaid Grade Level",
+          details: {
+            score: this.scores.fleschKincaidGrade,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "Fog Scale",
+          details: {
+            score: this.scores.gunningFog,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "SMOG Index",
+          details: {
+            score: this.scores.smogIndex,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "Automated Readability Index",
+          details: {
+            score: this.scores.automatedReadabilityIndex,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "Coleman-Liau Index",
+          details: {
+            score: this.scores.colemanLiauIndex,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "Linsear Write Formula",
+          details: {
+            score: this.scores.linsearWriteFormula,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "Dale-Chall Readability details:{Score",
+          details: {
+            score: this.scores.daleChallReadabilityScore,
+            url: "",
+            description: "",
+          },
+        },
+        {
+          label: "Readability Consensus",
+          details: {
+            score: this.scores.readabilityConsensus,
+            url: "",
+            description: "",
+          },
+        },
+      ];
+      const prettyPos = (pos: vscode.Position): string => {
+        return `Ln ${pos.line + 1}, Col ${pos.character + 1}`;
+      };
+      const selectionText: string =
+        this.selection && !this.selection.isEmpty
+          ? `${prettyPos(this.selection.start)} - ${prettyPos(
+              this.selection.end
+            )}`
+          : "All";
+      return Promise.resolve([
+        new ReadabilityTreeItem(
+          `Selection: ${selectionText}`,
+          vscode.TreeItemCollapsibleState.None
+        ),
+        ...itemConfigs.map(
+          (itemConfig) =>
+            new ReadabilityTreeItem(
+              itemConfig.label,
+              vscode.TreeItemCollapsibleState.Expanded,
+              itemConfig.details
+            )
+        ),
+      ]);
+    }
   }
 }
 
-// function getNonce() {
-// 	let text = '';
-// 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-// 	for (let i = 0; i < 32; i++) {
-// 		text += possible.charAt(Math.floor(Math.random() * possible.length));
-// 	}
-// 	return text;
-// }
+export class ReadabilityTreeItem extends vscode.TreeItem {
+  constructor(
+    public readonly label: string,
+    public readonly collapsibleState: vscode.TreeItemCollapsibleState,
+    public readonly details?: {
+      score: string | number;
+      url: string;
+      description: "";
+    } // public readonly command?: vscode.Command
+  ) {
+    super(label, collapsibleState);
+    if (details) {
+      this.tooltip = details.description;
+    }
+    // this.description = "some description"; // creates subtle text
+  }
+
+  // iconPath = {
+  // 	light: path.join(__filename, '..', '..', 'resources', 'light', 'dependency.svg'),
+  // 	dark: path.join(__filename, '..', '..', 'resources', 'dark', 'dependency.svg')
+  // };
+}
