@@ -41,12 +41,11 @@ let readabilityStatusBarItem;
 function activate(context) {
     // View Configuration
     const treeProvider = new view_1.ReadabilityTreeProvider();
-    vscode.window.registerTreeDataProvider("vs-ext-readability.readabilityView", treeProvider);
+    vscode.window.registerTreeDataProvider("readability.readabilityView", treeProvider);
     // Command configuration. (Opens the Readability View)
-    const commandId = "vs-ext-readability.showReadability";
-    const readabilityCommand = vscode.commands.registerTextEditorCommand(commandId, (textEditor) => {
-        const scores = (0, readability_1.getReadabilityScores)(textEditor);
-        console.log(scores);
+    const commandId = "readability.showReadability";
+    const readabilityCommand = vscode.commands.registerCommand(commandId, () => {
+        vscode.commands.executeCommand("readability.readabilityView.focus");
     });
     context.subscriptions.push(readabilityCommand);
     // Status bar configuration.

@@ -1,6 +1,6 @@
 {
-  "name": "vs-ext-readability",
-  "displayName": "vs-ext-readability",
+  "name": "readability",
+  "displayName": "readability",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -11,23 +11,20 @@
   ],
   "main": "./out/extension.js",
   "activationEvents": [
-    "*"
+    "onLanguage:plaintext",
+    "onLanguage:markdown"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "vs-ext-readability.showReadability",
-        "title": "Score Readability"
-      },
-      {
-        "command": "vs-ext-readability.refresh",
-        "title": "Refresh Readability"
+        "command": "readability.showReadability",
+        "title": "Analyze Readability"
       }
     ],
     "views": {
       "explorer": [
         {
-          "id": "vs-ext-readability.readabilityView",
+          "id": "readability.readabilityView",
           "name": "Readability"
         }
       ]
@@ -35,18 +32,18 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "vs-ext-readability.showReadability",
+          "command": "readability.showReadability",
           "when": "editorHasSelection || editorLangId == markdown || editorLangId == plaintext"
         }
       ]
     },
     "configuration": [
       {
-        "title": "JSON Outline",
+        "title": "Readability",
         "properties": {
-          "vs-code-readability.autorefresh": {
-            "type": "boolean",
-            "description": "Auto refresh the JSON outline view when the contents of the json file change.",
+          "readability.autorefresh": {
+            "type": "array",
+            "description": "Auto refresh the JSON outline opeview when the contents of the json file change.",
             "default": false
           }
         }

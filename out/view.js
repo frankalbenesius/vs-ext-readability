@@ -72,7 +72,10 @@ class ReadabilityTreeProvider {
         }
         if (element) {
             return Promise.resolve([
-                new ReadabilityTreeItem(element.details.score.toString(), vscode.TreeItemCollapsibleState.None),
+                new ReadabilityTreeItem(element.details.score.toString(), vscode.TreeItemCollapsibleState.None, {
+                    url: element.details.url,
+                } // i just want the dang url, ok?
+                ),
             ]);
         }
         else {
@@ -81,64 +84,64 @@ class ReadabilityTreeProvider {
                     label: "Flesch Reading Ease Formula",
                     details: {
                         score: this.scores.fleschReadingEase,
-                        url: "",
-                        description: "",
+                        description: "Assesses the ease of readability in a document. While the maximum score is 121.22, there is no limit on how low the score can be. A negative score is valid.",
+                        url: "https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests#Flesch_reading_ease",
                     },
                 },
                 {
                     label: "Flesch-Kincaid Grade Level",
                     details: {
                         score: this.scores.fleschKincaidGrade,
-                        url: "",
-                        description: "",
+                        description: "Returns the Flesch-Kincaid Grade of the given text. This is a grade formula in that a score of 9.3 means that a ninth grader would be able to read the document.",
+                        url: "https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests#Flesch%E2%80%93Kincaid_grade_level",
                     },
                 },
                 {
                     label: "Fog Scale",
                     details: {
                         score: this.scores.gunningFog,
-                        url: "",
-                        description: "",
+                        url: "https://en.wikipedia.org/wiki/Gunning_fog_index",
+                        description: "Returns the FOG index of the given text. This is a grade formula in that a score of 9.3 means that a ninth grader would be able to read the document.",
                     },
                 },
                 {
                     label: "SMOG Index",
                     details: {
                         score: this.scores.smogIndex,
-                        url: "",
-                        description: "",
+                        url: "https://en.wikipedia.org/wiki/SMOG",
+                        description: "Returns the SMOG index of the given text. This is a grade formula in that a score of 9.3 means that a ninth grader would be able to read the document.\n\nTexts of fewer than 30 sentences are statistically invalid, because the SMOG formula was normed on 30-sentence samples. textstat requires at least 3 sentences for a result.",
                     },
                 },
                 {
                     label: "Automated Readability Index",
                     details: {
                         score: this.scores.automatedReadabilityIndex,
-                        url: "",
-                        description: "",
+                        url: "https://en.wikipedia.org/wiki/Automated_readability_index",
+                        description: "Returns the ARI (Automated Readability Index) which outputs a number that approximates the grade level needed to comprehend the text.\n\nFor example if the ARI is 6.5, then the grade level to comprehend the text is 6th to 7th grade.",
                     },
                 },
                 {
                     label: "Coleman-Liau Index",
                     details: {
                         score: this.scores.colemanLiauIndex,
-                        url: "",
-                        description: "",
+                        url: "https://en.wikipedia.org/wiki/Coleman%E2%80%93Liau_index",
+                        description: "Returns the grade level of the text using the Coleman-Liau Formula. This is a grade formula in that a score of 9.3 means that a ninth grader would be able to read the document.",
                     },
                 },
                 {
                     label: "Linsear Write Formula",
                     details: {
                         score: this.scores.linsearWriteFormula,
-                        url: "",
-                        description: "",
+                        url: "https://en.wikipedia.org/wiki/Linsear_Write",
+                        description: "Returns the grade level using the Linsear Write Formula. This is a grade formula in that a score of 9.3 means that a ninth grader would be able to read the document.",
                     },
                 },
                 {
-                    label: "Dale-Chall Readability details:{Score",
+                    label: "Dale-Chall Readability",
                     details: {
                         score: this.scores.daleChallReadabilityScore,
-                        url: "",
-                        description: "",
+                        url: "https://en.wikipedia.org/wiki/Dale%E2%80%93Chall_readability_formula",
+                        description: "Different from other tests, since it uses a lookup table of the most commonly used 3000 English words. Thus it returns the grade level using the New Dale-Chall Formula.",
                     },
                 },
                 {
@@ -146,7 +149,7 @@ class ReadabilityTreeProvider {
                     details: {
                         score: this.scores.readabilityConsensus,
                         url: "",
-                        description: "",
+                        description: "Based upon all the above tests, returns the estimated school grade level required to understand the text.",
                     },
                 },
             ];
@@ -174,10 +177,21 @@ class ReadabilityTreeItem extends vscode.TreeItem {
         this.label = label;
         this.collapsibleState = collapsibleState;
         this.details = details;
-        if (details) {
+        if (details?.description) {
+            // this is a root node
             this.tooltip = details.description;
         }
-        // this.description = "some description"; // creates subtle text
+        else {
+            // this is a score leaf node
+            if (details?.url) {
+                this.command = {
+                    title: "Open Link",
+                    command: "vscode.open",
+                    arguments: [details.url],
+                };
+                this.tooltip = "Click to open Wikipedia description.";
+            }
+        }
     }
 }
 exports.ReadabilityTreeItem = ReadabilityTreeItem;

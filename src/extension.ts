@@ -8,19 +8,15 @@ export function activate(context: vscode.ExtensionContext) {
   // View Configuration
   const treeProvider = new ReadabilityTreeProvider();
   vscode.window.registerTreeDataProvider(
-    "vs-ext-readability.readabilityView",
+    "readability.readabilityView",
     treeProvider
   );
 
   // Command configuration. (Opens the Readability View)
-  const commandId = "vs-ext-readability.showReadability";
-  const readabilityCommand = vscode.commands.registerTextEditorCommand(
-    commandId,
-    (textEditor) => {
-      const scores = getReadabilityScores(textEditor);
-      console.log(scores);
-    }
-  );
+  const commandId = "readability.showReadability";
+  const readabilityCommand = vscode.commands.registerCommand(commandId, () => {
+    vscode.commands.executeCommand("readability.readabilityView.focus");
+  });
   context.subscriptions.push(readabilityCommand);
 
   // Status bar configuration.
